@@ -22,11 +22,17 @@ namespace WebShop.Blazor.Services
 
         public async Task<string> GetTokenAsync()
         {
-            if (_tokenResponse != null && !IsTokenExpired())
+            if (_tokenResponse == null || IsTokenExpired())
             {
-                return _tokenResponse.AccessToken;
+                _tokenResponse = await FetchTokenAsync();
+                SetTokenExpirationTime(_tokenResponse.ExpiresIn);
             }
 
+            return _tokenResponse.AccessToken;
+        }
+
+        private async Task<OAuthTokenResponse> FetchTokenAsync()
+        {
             using HttpClient client = _httpClientFactory.CreateClient();
 
             var requestBody = JsonSerializer.Serialize(new
@@ -38,41 +44,27 @@ namespace WebShop.Blazor.Services
             });
 
             var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-            var url = new UriBuilder(_config.Domain)
-            {
-                Path = "oauth/token",
-            }.ToString();
-
-            var request = new HttpRequestMessage(HttpMethod.Post, url)
-            {
-                Content = content
-            };
+            var url = new UriBuilder(_config.Domain) { Path = "oauth/token" }.ToString();
+            var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
 
             try
             {
-                var response = await client.SendAsync(request).ConfigureAwait(false);
+                var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
                 var responseContent = await response.Content.ReadAsStringAsync();
                 var tokenResponse = JsonSerializer.Deserialize<OAuthTokenResponse>(responseContent)
                     ?? throw new Exception("Failed to deserialize token response.");
 
-
-                SetTokenExpirationTime(tokenResponse.ExpiresIn);
-                _tokenResponse = tokenResponse;
-
-
-                if (string.IsNullOrEmpty(tokenResponse.AccessToken))
-                {
-                    throw new Exception("Token response did not contain an access token.");
-                }
-
-                return tokenResponse.AccessToken;
+                return tokenResponse;
             }
             catch (HttpRequestException ex)
             {
                 throw new Exception("Network error occurred while requesting token.", ex);
+            }
+            catch (JsonException ex)
+            {
+                throw new Exception("Error deserializing token response.", ex);
             }
             catch (Exception ex)
             {
