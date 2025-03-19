@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebShop.Blazor.Components;
 using WebShop.Blazor.Components.Account;
+using WebShop.Blazor.Configuration;
 using WebShop.Blazor.Data;
+using WebShop.Blazor.Services;
 
 namespace WebShop.Blazor;
 
@@ -18,6 +20,10 @@ public class Program
 
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
+
+        builder.Services.AddHttpClient();
+        builder.Services.Configure<OAuthConfig>(builder.Configuration.GetSection("OAuth"));
+        builder.Services.AddSingleton<OAuthService>();
 
         builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddScoped<IdentityUserAccessor>();
@@ -67,6 +73,12 @@ public class Program
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+        app.MapGet("/api", async (OAuthService oauth) =>
+        {
+            var token = await oauth.GetTokenAsync();
+            return Results.Ok(new { token });
+        });
 
         app.Run();
     }
