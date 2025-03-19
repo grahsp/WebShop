@@ -8,6 +8,9 @@ namespace WebShop.Blazor.Services
 {
     public class OAuthService
     {
+        public string AccessToken => _tokenResponse?.AccessToken ?? string.Empty;
+        public int ExpiresIn => _tokenResponse?.ExpiresIn ?? 0;
+
         private OAuthTokenResponse? _tokenResponse;
         private DateTime _tokenExpirationTime;
 

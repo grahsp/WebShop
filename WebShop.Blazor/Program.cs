@@ -6,6 +6,7 @@ using WebShop.Blazor.Components.Account;
 using WebShop.Blazor.Configuration;
 using WebShop.Blazor.Data;
 using WebShop.Blazor.Services;
+using WebShop.Blazor.Worker;
 
 namespace WebShop.Blazor;
 
@@ -17,6 +18,8 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Configuration.AddUserSecrets<Program>();
+
+        builder.Services.AddHostedService<OAuthInitializer>();
 
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
